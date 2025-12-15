@@ -52,7 +52,7 @@ class PyNoteApp(tk.Tk):
 
         # status bar
         self.status = tk.StringVar()
-        self.status.set('Ln 1, Col 0')
+        self.status.set('Ln 1, Col 0 | Words: 0 | Chars: 0')
         self.status_bar = ttk.Label(self, textvariable=self.status, anchor='w')
         self.status_bar.pack(side='bottom', fill='x')
 
@@ -123,6 +123,7 @@ class PyNoteApp(tk.Tk):
             self.text.delete('1.0', tk.END)
             self._filepath = None
             self.title(APP_TITLE)
+            self._update_status()
 
     def open_file(self):
         if not self._confirm_discard():
@@ -138,6 +139,7 @@ class PyNoteApp(tk.Tk):
                 self.text.insert('1.0', data)
                 self._filepath = path
                 self.title(f"{APP_TITLE} - {path}")
+                self._update_status()
             except Exception as e:
                 messagebox.showerror('Error', f'Failed to open file: {str(e)}')
 
@@ -173,7 +175,15 @@ class PyNoteApp(tk.Tk):
         idx = self.text.index(tk.INSERT).split('.')
         line = idx[0]
         col = idx[1]
-        self.status.set(f'Ln {line}, Col {col}')
+        content = self.text.get('1.0', 'end-1c')
+        try:
+            words = utils.count_words(content)
+            chars = utils.count_chars(content)
+        except Exception:
+            # Fallback in unlikely event utils isn't available
+            words = len(content.split())
+            chars = len(content)
+        self.status.set(f'Ln {line}, Col {col} | Words: {words} | Chars: {chars}')
 
     def _confirm_discard(self):
         if self.text.edit_modified():
