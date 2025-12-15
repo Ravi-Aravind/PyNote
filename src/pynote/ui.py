@@ -141,6 +141,9 @@ class ShortcutsDialog:
                 ('Undo', 'Cmd+Z' if is_mac else 'Ctrl+Z'),
                 ('Redo', 'Cmd+Shift+Z' if is_mac else 'Ctrl+Y'),
             ]),
+            ('View', [
+                ('Toggle Status Bar', 'Cmd+B' if is_mac else 'Ctrl+B'),
+            ]),
         ]
 
         for category, items in shortcuts:
