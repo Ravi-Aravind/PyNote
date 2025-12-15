@@ -11,11 +11,24 @@ class PyNoteApp(tk.Tk):
         self.title(APP_TITLE)
         self.geometry('800x600')
         self._filepath = None
+        # Using emoji icons for consistency across platforms
         self._create_widgets()
         self._create_menu()
         self._bind_shortcuts()
 
     def _create_widgets(self):
+        # Toolbar with small icon buttons
+        toolbar = ttk.Frame(self)
+        toolbar.pack(side='top', fill='x')
+
+        # Emoji-based small buttons (📄 New, 📂 Open, 💾 Save)
+        btn_new = ttk.Button(toolbar, text='📄', width=3, command=self.new_file)
+        btn_open = ttk.Button(toolbar, text='📂', width=3, command=self.open_file)
+        btn_save = ttk.Button(toolbar, text='💾', width=3, command=self.save_file)
+
+        for b in (btn_new, btn_open, btn_save):
+            b.pack(side='left', padx=4, pady=4)
+
         # Text widget with scrollbar
         self.text = tk.Text(self, wrap='word', undo=True)
         self.vsb = ttk.Scrollbar(self, orient='vertical', command=self.text.yview)
@@ -51,6 +64,11 @@ class PyNoteApp(tk.Tk):
         self.bind('<Control-n>', lambda e: self.new_file())
         self.bind('<Control-z>', lambda e: self.text.event_generate('<<Undo>>'))
         self.bind('<Control-y>', lambda e: self.text.event_generate('<<Redo>>'))
+
+    def _load_icons(self):
+        # Deprecated: image-based icons removed to avoid TclError on some platforms
+        # Kept for compatibility; no-op.
+        pass
 
     def new_file(self):
         if self._confirm_discard():
