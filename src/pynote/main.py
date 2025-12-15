@@ -1,6 +1,7 @@
 # src/pynote/main.py
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from tkinter import font as tkfont
 try:
     from . import utils
     from . import themes
@@ -43,12 +44,20 @@ class PyNoteApp(tk.Tk):
         for b in (btn_new, btn_open, btn_save):
             b.pack(side='left', padx=4, pady=4)
 
-        # Text widget with scrollbar
-        self.text = tk.Text(self, wrap='word', undo=True)
-        self.vsb = ttk.Scrollbar(self, orient='vertical', command=self.text.yview)
-        self.text.configure(yscrollcommand=self.vsb.set)
-        self.vsb.pack(side='right', fill='y')
+        # Editor area: gutter (line numbers) + text + vertical scrollbar
+        self.editor = ttk.Frame(self)
+        self.editor.pack(side='top', fill='both', expand=True)
+
+        self.gutter_width = 40
+        self.gutter = tk.Canvas(self.editor, width=self.gutter_width, highlightthickness=0)
+        self.gutter.pack(side='left', fill='y')
+
+        self.text = tk.Text(self.editor, wrap='word', undo=True)
         self.text.pack(side='left', fill='both', expand=True)
+
+        self.vsb = ttk.Scrollbar(self.editor, orient='vertical', command=self._on_scrollbar)
+        self.vsb.pack(side='right', fill='y')
+        self.text.configure(yscrollcommand=self._on_yscroll)
 
         # status bar
         self.status = tk.StringVar()
@@ -56,9 +65,11 @@ class PyNoteApp(tk.Tk):
         self.status_bar = ttk.Label(self, textvariable=self.status, anchor='w')
         self.status_bar.pack(side='bottom', fill='x')
 
-        # update cursor position
+        # update cursor position and gutter on edits/resizes
         self.text.bind('<KeyRelease>', self._update_status)
         self.text.bind('<ButtonRelease>', self._update_status)
+        self.text.bind('<MouseWheel>', lambda e: (self._update_gutter(), None))
+        self.text.bind('<Configure>', lambda e: self._update_gutter())
 
     def _create_menu(self):
         menu = tk.Menu(self)
@@ -93,6 +104,7 @@ class PyNoteApp(tk.Tk):
     def _apply_theme(self):
         name = 'dark' if self.dark_mode.get() else 'light'
         theme = themes.get_theme(name)
+        self._theme = theme
         # Apply to text widget
         themes.apply_theme(self.text, theme)
         # Apply to root window background
@@ -109,6 +121,68 @@ class PyNoteApp(tk.Tk):
             self.style.configure('Vertical.TScrollbar', background=theme['gutter_bg'], troughcolor=theme['gutter_bg'])
         except Exception:
             pass
+        # Gutter colors
+        try:
+            self.gutter.configure(bg=theme['gutter_bg'])
+        except Exception:
+            pass
+        # Redraw gutter after theme change
+        self._update_gutter()
+
+    def _on_yscroll(self, first, last):
+        # Update scrollbar and gutter when text yview changes
+        self.vsb.set(first, last)
+        self._update_gutter()
+
+    def _on_scrollbar(self, *args):
+        # Scroll text and update gutter when using scrollbar
+        self.text.yview(*args)
+        self._update_gutter()
+
+    def _update_gutter(self):
+        """Redraw line numbers in the gutter to match visible lines."""
+        if not hasattr(self, 'gutter'):
+            return
+        self.gutter.delete('all')
+        theme = getattr(self, '_theme', {
+            'gutter_bg': '#F0F0F0',
+            'gutter_fg': '#666666',
+        })
+        try:
+            self.gutter.configure(bg=theme['gutter_bg'])
+        except Exception:
+            pass
+
+        # Determine first and last visible line
+        i = self.text.index('@0,0')
+        gutter_padding = 4
+        # Adjust gutter width based on number of digits
+        total_lines = int(self.text.index('end-1c').split('.')[0])
+        digits = max(2, len(str(total_lines)))
+        try:
+            font = tkfont.nametofont(self.text.cget('font'))
+            char_w = font.measure('0')
+        except Exception:
+            char_w = 8
+        desired_width = gutter_padding * 2 + digits * char_w
+        if abs(desired_width - int(self.gutter['width'])) > 2:
+            self.gutter_width = desired_width
+            self.gutter.config(width=self.gutter_width)
+
+        # Iterate through visible lines and draw numbers
+        index = self.text.index('@0,0')
+        while True:
+            dline = self.text.dlineinfo(index)
+            if dline is None:
+                break
+            y = dline[1]
+            line_number = index.split('.')[0]
+            self.gutter.create_text(self.gutter_width - gutter_padding, y, anchor='ne',
+                                    text=line_number, fill=theme['gutter_fg'])
+            # Move to next line
+            index = self.text.index(f"{index}+1line")
+            if y > self.text.winfo_height():
+                break
 
     def _toggle_dark_mode(self):
         self.current_theme_name = 'dark' if self.dark_mode.get() else 'light'
@@ -184,6 +258,8 @@ class PyNoteApp(tk.Tk):
             words = len(content.split())
             chars = len(content)
         self.status.set(f'Ln {line}, Col {col} | Words: {words} | Chars: {chars}')
+        # Keep gutter in sync with edits/cursor moves
+        self._update_gutter()
 
     def _confirm_discard(self):
         if self.text.edit_modified():
