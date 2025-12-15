@@ -20,6 +20,12 @@ class PyNoteApp(tk.Tk):
         self.title(APP_TITLE)
         self.geometry('800x600')
         self._filepath = None
+        # Platform hint for menu accelerator text
+        try:
+            self._is_mac = (self.tk.call('tk', 'windowingsystem') == 'aqua')
+        except Exception:
+            import sys as _sys
+            self._is_mac = (_sys.platform == 'darwin')
         # Settings and theme
         self.settings = utils.load_settings()
         self.current_theme_name = self.settings.get('theme', 'light')
@@ -77,7 +83,8 @@ class PyNoteApp(tk.Tk):
         filemenu.add_command(label='New', command=self.new_file)
         filemenu.add_command(label='Open', command=self.open_file)
         filemenu.add_command(label='Save', command=self.save_file)
-        filemenu.add_command(label='Save As', command=self.save_as)
+        accel_sa = 'Cmd+Shift+S' if self._is_mac else 'Ctrl+Shift+S'
+        filemenu.add_command(label='Save As...', command=self.save_as, accelerator=accel_sa)
         filemenu.add_separator()
         filemenu.add_command(label='Exit', command=self.quit)
         menu.add_cascade(label='File', menu=filemenu)
@@ -95,6 +102,9 @@ class PyNoteApp(tk.Tk):
         self.bind('<Command-n>', lambda e: self.new_file())
         self.bind('<Control-z>', lambda e: self.text.event_generate('<<Undo>>'))
         self.bind('<Control-y>', lambda e: self.text.event_generate('<<Redo>>'))
+        # Save As shortcut
+        self.bind('<Control-Shift-s>', lambda e: self.save_as())
+        self.bind('<Command-Shift-s>', lambda e: self.save_as())
 
     def _load_icons(self):
         # Deprecated: image-based icons removed to avoid TclError on some platforms
