@@ -30,6 +30,7 @@ class PyNoteApp(tk.Tk):
         self.settings = utils.load_settings()
         self.current_theme_name = self.settings.get('theme', 'light')
         self.dark_mode = tk.BooleanVar(value=(self.current_theme_name.lower() == 'dark'))
+        self.status_visible = tk.BooleanVar(value=self.settings.get('status_bar_visible', True))
         self.style = ttk.Style(self)
         # Using emoji icons for consistency across platforms
         self._create_widgets()
@@ -70,6 +71,8 @@ class PyNoteApp(tk.Tk):
         self.status.set('Ln 1, Col 0 | Words: 0 | Chars: 0')
         self.status_bar = ttk.Label(self, textvariable=self.status, anchor='w')
         self.status_bar.pack(side='bottom', fill='x')
+        if not self.status_visible.get():
+            self.status_bar.pack_forget()
 
         # update cursor position and gutter on edits/resizes
         self.text.bind('<KeyRelease>', self._update_status)
@@ -91,6 +94,13 @@ class PyNoteApp(tk.Tk):
 
         viewmenu = tk.Menu(menu, tearoff=0)
         viewmenu.add_checkbutton(label='Dark Mode', variable=self.dark_mode, command=self._toggle_dark_mode)
+        accel_status = 'Cmd+B' if self._is_mac else 'Ctrl+B'
+        viewmenu.add_checkbutton(
+            label='Status Bar',
+            variable=self.status_visible,
+            command=self._toggle_status_bar,
+            accelerator=accel_status
+        )
         menu.add_cascade(label='View', menu=viewmenu)
 
         helpmenu = tk.Menu(menu, tearoff=0)
@@ -110,6 +120,9 @@ class PyNoteApp(tk.Tk):
         # Save As shortcut
         self.bind('<Control-Shift-s>', lambda e: self.save_as())
         self.bind('<Command-Shift-s>', lambda e: self.save_as())
+        # Toggle status bar
+        self.bind('<Control-b>', lambda e: self._toggle_status_bar())
+        self.bind('<Command-b>', lambda e: self._toggle_status_bar())
 
     def _load_icons(self):
         # Deprecated: image-based icons removed to avoid TclError on some platforms
@@ -206,6 +219,16 @@ class PyNoteApp(tk.Tk):
         utils.save_settings(self.settings)
         # Apply
         self._apply_theme()
+
+    def _toggle_status_bar(self):
+        new_value = not self.status_visible.get()
+        self.status_visible.set(new_value)
+        if new_value:
+            self.status_bar.pack(side='bottom', fill='x')
+        else:
+            self.status_bar.pack_forget()
+        self.settings['status_bar_visible'] = new_value
+        utils.save_settings(self.settings)
 
     def _show_shortcuts(self):
         try:

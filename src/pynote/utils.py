@@ -40,6 +40,7 @@ def load_settings():
         'font_family': 'Courier New',
         'font_size': 12,
         'recent_files': [],
+        'status_bar_visible': True,
     }
     
     if config_file.exists():
