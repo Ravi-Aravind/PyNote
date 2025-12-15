@@ -16,6 +16,9 @@ class AboutDialog:
         self.dialog.title('About PyNote')
         self.dialog.geometry('300x200')
         self.dialog.resizable(False, False)
+        # Make modal
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
         self._create_widgets()
     
     def _create_widgets(self):
@@ -36,10 +39,10 @@ class AboutDialog:
             text='Version 0.1.0',
             font=('Arial', 9)
         ).pack(pady=5)
-        
+
         tk.Label(
             self.dialog,
-            text='Built with Python + Tkinter',
+            text='Built by Coding Trio',
             font=('Arial', 8)
         ).pack(pady=5)
         
@@ -49,6 +52,11 @@ class AboutDialog:
             command=self.dialog.destroy,
             width=10
         ).pack(pady=20)
+        # Center dialog relative to parent
+        self.dialog.update_idletasks()
+        x = self.parent.winfo_rootx() + (self.parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
+        y = self.parent.winfo_rooty() + (self.parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
+        self.dialog.geometry(f"+{x}+{y}")
 
 
 class GoToLineDialog:
@@ -109,5 +117,6 @@ class GoToLineDialog:
 
 def show_about(parent):
     """Show about dialog."""
-    AboutDialog(parent)
+    dlg = AboutDialog(parent)
+    parent.wait_window(dlg.dialog)
 

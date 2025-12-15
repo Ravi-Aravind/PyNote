@@ -92,6 +92,10 @@ class PyNoteApp(tk.Tk):
         viewmenu = tk.Menu(menu, tearoff=0)
         viewmenu.add_checkbutton(label='Dark Mode', variable=self.dark_mode, command=self._toggle_dark_mode)
         menu.add_cascade(label='View', menu=viewmenu)
+
+        helpmenu = tk.Menu(menu, tearoff=0)
+        helpmenu.add_command(label='About', command=self._show_about)
+        menu.add_cascade(label='Help', menu=helpmenu)
         self.config(menu=menu)
 
     def _bind_shortcuts(self):
@@ -201,6 +205,14 @@ class PyNoteApp(tk.Tk):
         utils.save_settings(self.settings)
         # Apply
         self._apply_theme()
+
+    def _show_about(self):
+        try:
+            from . import ui
+        except Exception:
+            # Fallback for script run
+            from pynote import ui
+        ui.show_about(self)
 
     def new_file(self):
         if self._confirm_discard():
